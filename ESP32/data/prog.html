@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+        <title>Braço Robótico</title>
+        <link href = "prog.css" rel = "stylesheet">
+    </head>
+    
+    <body>
+        <header>
+            <div class = "conexao">
+                <p>Estado da conexão: </p>
+                <span id = "conexao-estado"></span>
+            </div>
+    
+            <div>
+                <p>Modo de funcionamento: </p>
+                <span id = "modo">Conectando...</span>
+            </div>
+        </header>
+
+        <main>
+            <div class = "sliders" id = "sliders">
+                <div class = "passos">
+                    <div>
+                        <h2>Máx.:</h2>
+                        <input type = "number" value="0" max = "9" min = "0" id = "max"> 
+                    </div> 
+
+                    <div>
+                        <h2>Passo: </h2>
+                        <input type = "number" value="0" max = "9" min = "0" id = "passo"> 
+                    </div>
+                </div> <!-- passos -->
+
+                <h1>Ângulo da Base:</h1>
+                <span>Valor: </span> <span class = "valores"></span>
+                <div class = "slider-div">
+                    <button class = "remove" id = "r1"><</button>
+                    <input type = "range" min="30" max="150" value="90" class="slider" id="s1">
+                    <button class = "adiciona" id = "a1">></button>
+                </div>
+
+                <h1>Ângulo da garra:</h1>
+                <span>Valor: </span> <span class = "valores"></span>
+                <div class = "slider-div">
+                    <button class = "remove" id = "r2"><</button>
+                    <input type = "range" min="30" max="100" value="65" class="slider" id="s2">
+                    <button class = "adiciona" id = "a2">></button>
+                </div>
+
+                <h1>Ângulo do braço:</h1>
+                <span>Valor: </span> <span class = "valores"></span>
+                <div class = "slider-div">
+                    <button class = "remove" id = "r3"><</button>
+                    <input type = "range" min="50" max="100" value="75" class="slider" id="s3">
+                    <button class = "adiciona" id = "a3">></button>
+                </div>
+
+                <h1>Avanço do braço:</h1>
+                <span>Valor: </span> <span class = "valores"></span>
+                <div class = "slider-div">
+                    <button class = "remove" id = "r4"><</button>
+                    <input type = "range" min="70" max="140" value="105" class="slider" id="s4">
+                    <button class = "adiciona" id = "a4">></button>
+                </div>
+            </div>
+    
+            <div class = "botoes">
+                <div class = "pt-1">
+                    <button class = "butao" id = "run">Run</button>
+                    <button class = "butao" id = "program">Program</button>
+                </div>
+
+                <div class = "pt-2">
+                    <button class = "butao" id = "save">Save</button>
+                    <button class = "butao" id = "reset">Reset</button>
+                    <button class = "butao" id = "restart">Restart</button>
+                </div>
+            </div>
+        </main>
+    </body>
+    <script src = "prog.js"></script>
+</html>

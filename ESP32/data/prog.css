@@ -1,0 +1,193 @@
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgb(70, 70, 70);
+    border-radius: 20px;
+} 
+
+::-webkit-scrollbar-track {
+    background-color: rgb(40, 40, 40);
+}
+
+html, body {width: 100%; height: 100%; padding: 0; margin: 0; }
+
+header {
+    display: flex;
+    justify-content: space-around;
+}
+
+body {
+    margin: 0;
+    background: linear-gradient(45deg, rgb(0, 0, 0), rgb(75, 75, 75));
+    background-size: cover;
+    background-attachment: fixed;
+    font-family: "Roboto", sans-serif;
+    -moz-user-select: none; 
+    -webkit-user-select: none;
+    -ms-user-select:none; 
+    user-select:none;
+    -o-user-select:none;
+    color:rgb(230,230,230);
+}
+
+header {
+    display: flex;
+}
+
+header div {
+    display: flex;
+    align-items: center;
+}
+
+#modo {    
+    margin-left: 15px;
+}
+
+.conexao span{
+    padding: 12px;
+    background-color: red;
+    border-radius: 5px;
+}
+
+.conexao p{
+    margin: 0 20px;
+}
+
+.passos {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 10px;
+}
+
+.passos div {
+    text-align: center;
+    margin-top: -25px;
+}
+
+.passos div input {
+    width: 50px;
+}
+
+.sliders {
+    margin:  0 auto;
+    width: 60%; 
+    text-align: center;
+    background-color:rgb(40, 40, 40);
+    box-shadow: 0px 0px 16px 4px rgba(0, 0, 0, 0.36);
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.sliders h1 {
+    margin-top: 0px;
+    margin-bottom: 20px;
+}
+
+.slider {
+    -webkit-appearance: none;  
+    appearance: none;
+    width: 100%; 
+    height: 30px; 
+    background: rgb(70, 70, 70); 
+    outline: none; 
+    opacity: 0.7; 
+    transition: 0.2s;
+    border-radius: 3px;
+    margin: 0 20px;
+}
+
+.slider:hover {
+    opacity: 1;
+    transition: 0.2s;
+}
+
+.slider::-webkit-slider-thumb {    
+    appearance: none;
+    width: 30px; 
+    height: 30px;
+    background: lightgray; 
+    cursor: pointer;
+    border-radius: 0;
+    border: 0; 
+}
+
+.slider::-moz-range-thumb {
+    appearance: none;
+    width: 30px; 
+    height: 96%;
+    background: lightgray; 
+    cursor: pointer;
+    border-radius: 0;
+    border: 0;
+    border-radius: 3px;
+}
+
+.slider-div {
+    display:flex;
+    align-items: center;
+}
+
+.slider-div button {
+    height: 30px;
+    width: 30px;
+    box-sizing: border-box;
+    background: rgb(70, 70, 70); 
+    border: 0;
+    border-radius: 3px;
+    color: white;
+    color:rgb(230,230,230);
+    transition: 0.2s;
+}
+
+.slider-div button:hover {
+    background: rgb(95, 95, 95);
+    transition: 0.2s;
+}
+
+.slider-div button:active {
+    background: rgb(110, 110, 110);
+    transition: 0.1s;
+}
+
+.botoes {
+    /* justify-content: space-between; */
+    justify-content: center;
+    margin-top: 30px;
+    text-align: center;
+}
+
+.butao{
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: 0;
+    box-shadow: 0px 0px 16px 4px rgba(0, 0, 0, 0.36);
+    background-color: rgb(50,50,50);
+    color:rgb(230,230,230);
+    transition: 0.1s;
+    margin-bottom: 10px;
+}
+
+.butao:hover{
+    background-color: rgb(70, 70, 70);
+    transition: 0.1s;
+}
+
+.butao:active {
+    background-color: rgb(100, 100, 100);
+    transition: 0.1s;
+}
+
+@media (max-width: 650px) {
+    header {
+        flex-direction: column;
+        align-items: center;
+        margin-top: 5px;
+    }
+
+    .sliders h1{
+        margin-top: 10px;
+        font-size: 25px;
+    }
+}
