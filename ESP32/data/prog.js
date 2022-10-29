@@ -1,9 +1,5 @@
 const url = "ws://192.168.4.1:1337/" // url para websocket
 const dom = { // variável que contém todos os elementos utilizados aqui do DOM
-    s1: document.getElementById("s1"),
-    s2: document.getElementById("s2"),
-    s3: document.getElementById("s3"),
-    s4: document.getElementById("s4"),
     sliders: document.getElementById("sliders"),
     sliders_class: document.getElementsByClassName("slider"), 
     reset: document.getElementById("reset"),
@@ -20,18 +16,17 @@ const dom = { // variável que contém todos os elementos utilizados aqui do DOM
     passo: document.getElementById("passo")
 }
 
+const reset = [90,65,75,105];
+
 function init() {
     // dom.sliders.style.pointerEvents = "none";
     wsConnect(url); // abre conexão com webSocket
-    dom.s1.addEventListener('input', (e) => { enviarSlider(1, e.target.value) }); // caso os sliders sejam mexidos,
-    dom.s2.addEventListener('input', (e) => { enviarSlider(2, e.target.value) }); // o programa irá enviar os dados
-    dom.s3.addEventListener('input', (e) => { enviarSlider(3, e.target.value) }); // automaticamente ao esp
-    dom.s4.addEventListener('input', (e) => { enviarSlider(4, e.target.value) });
+    dom.sliders_class[0].addEventListener('input', (e) => { enviarSlider(1, e.target.value) }); // caso os sliders sejam mexidos,
+    dom.sliders_class[1].addEventListener('input', (e) => { enviarSlider(2, e.target.value) }); // o programa irá enviar os dados
+    dom.sliders_class[2].addEventListener('input', (e) => { enviarSlider(3, e.target.value) }); // automaticamente ao esp
+    dom.sliders_class[3].addEventListener('input', (e) => { enviarSlider(4, e.target.value) });
 
-    dom.s1.value = 90; // volta os sliders ao centro
-    dom.s2.value = 65;
-    dom.s3.value = 75;
-    dom.s4.value = 105;
+    resetarValores();
     dom.passo.value, dom.max_passo.value = 0;
 
     dom.run.addEventListener('click', function(event){ // caso o botão run seja clicado
@@ -52,31 +47,16 @@ function init() {
     dom.reset.addEventListener('click', function(event){ // função caso o      seja ativado
         if (dom.modo.innerHTML == "Program") {
             event.preventDefault(); // previne navegador de recarregar a página
-            dom.s1.value = 90; // volta os sliders ao centro
-            dom.s2.value = 65;
-            dom.s3.value = 75;
-            dom.s4.value = 105;
-
-            dom.valores[0].innerHTML = 90;
-            dom.valores[1].innerHTML = 65;
-            dom.valores[2].innerHTML = 75;
-            dom.valores[3].innerHTML = 105;
-            
+            resetarValores();
             enviar("rs");
         }
     })
     
     dom.restart.addEventListener('click', function(event){
         event.preventDefault();
-        dom.s1.value = 90; // volta os sliders ao centro
-        dom.s2.value = 65;
-        dom.s3.value = 75;
-        dom.s4.value = 105;
-        
-        dom.valores[0].innerHTML = 90;
-        dom.valores[1].innerHTML = 65;
-        dom.valores[2].innerHTML = 75;
-        dom.valores[3].innerHTML = 105;
+        resetarValores();
+        dom.passo.value = 0;
+        dom.max_passo.value = 0;
         enviar("rt");
     })
 
@@ -160,24 +140,15 @@ function onMessage(evt){
         dom.reset.style.display = "inline";
         dom.save.style.display = "inline";
     } else {
-        let str = payload;
-        if (str.slice(0,1) == "m") {
-            dom.max_passo.value = parseInt(str.slice(3));
-        } else if (str.slice(0,1) == "p") {
-            dom.passo.value = parseInt(str.slice(3));
-        } else if (str.slice(0,1) == "1") {
-            dom.s1.value = parseInt(str.slice(3));
-            dom.valores[0].innerHTML = parseInt(str.slice(3));
-        } else if (str.slice(0,1) == "2") {
-            dom.s2.value = parseInt(str.slice(3));
-            dom.valores[1].innerHTML = parseInt(str.slice(3));
-        } else if (str.slice(0,1) == "3") {
-            dom.s3.value = parseInt(str.slice(3));
-            dom.valores[2].innerHTML = parseInt(str.slice(3));
-        } else if (str.slice(0,1) == "4") {
-            dom.s4.value = parseInt(str.slice(3));
-            dom.valores[3].innerHTML = parseInt(str.slice(3));
+        let str = payload.split(";");
+        console.log(str);
+
+        for (let i = 0; i < 4;i++){
+            dom.valores[i].innerHTML = parseInt(str[i+2]);
+            dom.sliders_class[i].value = parseInt(str[i+2]);
         }
+        dom.max_passo.value = parseInt(str[1]);
+        dom.passo.value = parseInt(str[0]);
     }
 }
 
@@ -188,6 +159,13 @@ function onError(evt){
 function enviar(msg) { // simplismente envia a mensagem
     console.log("Enviando: " + msg);
     ws.send(msg);
+}
+
+function resetarValores(){
+    for (let i = 0; i < 4; i++){
+        dom.sliders_class[i].value = reset[i];
+        dom.valores[i].innerHTML = reset[i];;
+    }
 }
 
 window.addEventListener("load", init, false); // faz com que a função init seja carregada assim que a página for carregada

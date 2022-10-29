@@ -5,28 +5,34 @@
 char payload[8];
 char *valor;
 int modo = 1; // onde 0 é run e 1 é program
-int passos[10][4];  // [linhas][colunas]
+int passos[10][4];
 int passo = 0;
 int max_passo = 0;
-int u = 0;
 int x[4];
+int adrrEsp = 10;
 unsigned long int tempo;
+bool b = true; // variável que decide se algo será printado no monitor serial
 Servo servo; // base
 Servo servo1; // mão
 Servo servo2; // ângulo braço
 Servo servo3; // Avanço braço
+Servo servos[4] = {servo, servo1, servo2, servo3};
 
 void conversaoPayload();
 void salvarDados();
 void lerDados();
+void resetarDados();
 
 void setup(){
   Wire.begin(4);
   Wire.onReceive(receiveEvent);
-  //Serial.begin(9600);
-  //Serial.println();
-  //Serial.println("Programa Começando");
-
+  
+  if (b) {
+    Serial.begin(9600);
+    Serial.println();
+    Serial.println("Programa Começando"); 
+  }
+  
   for (int i = 0; i < 10; i++){
     for (int j = 0; j < 4; j++){
       passos[i][j] = -1;
@@ -34,113 +40,74 @@ void setup(){
   }
 
   lerDados();
-  
-  servo.attach(9);
-  servo1.attach(6);
-  servo2.attach(10);
-  servo3.attach(11);
+  servos[0].attach(9);
+  servos[1].attach(6);
+  servos[2].attach(10);
+  servos[3].attach(11);
   tempo = millis();
   pinMode(8, OUTPUT);
-  digitalWrite(8, HIGH);
-  delay(200);
-  digitalWrite(8, LOW);
-  delay(200);
-  digitalWrite(8, HIGH);
-  delay(200);
-  digitalWrite(8, LOW);
-}
-
-void loop(){
-  digitalWrite(8, modo);
-  if (millis() - tempo >= 10){
-    tempo = millis();
-    if (modo) {
-      u = 0;
-      u = passo;
-      if (x[0] != passos[passo][0]){
-        servo.write(x[0]);
-        if (x[0] < passos[passo][0]) x[0] += 1; 
-        else if (x[0] > passos[passo][0]) x[0] -= 1;
-      }
-       
-      if (x[1] != passos[passo][1]){
-        servo1.write(x[1]);
-        if (x[1] < passos[passo][1]) x[1] += 1;  
-        else if (x[1] > passos[passo][1]) x[1] -= 1;
-      }
-      
-      if (x[2] != passos[passo][2]){
-        servo2.write(x[2]);
-        if (x[2] < passos[passo][2]) x[2] += 1;
-        else if (x[2] > passos[passo][2]) x[2] -= 1;
-      }
-
-      if (x[3] != passos[passo][3]){
-        servo3.write(x[3]);
-        if (x[3] < passos[passo][3]) x[3] += 1;          
-        else if (x[3] > passos[passo][3]) x[3] -= 1;
-      }
-    } else {
-      if (x[0] != passos[u][0] || x[1] != passos[u][1] || x[2] != passos[u][2] || x[3] != passos[u][3]) {
-        if (x[0] < passos[u][0]) x[0] += 1;     
-        else if (x[0] > passos[u][0]) x[0] -= 1;
-      
-        if (x[1] < passos[u][1]) x[1] += 1;        
-        else if (x[1] > passos[u][1]) x[1] -= 1;
-                    
-        if (x[2] < passos[u][2]) x[2] += 1;
-        else if (x[2] > passos[u][2]) x[2] -= 1;    
-      
-        if (x[3] < passos[u][3]) x[3] += 1;       
-        else if (x[3] > passos[u][3]) x[3] -= 1;
-        
-        servo.write(x[0]);
-        servo1.write(x[1]);
-        servo2.write(x[2]);
-        servo3.write(x[3]);
-        //Serial.println();
-        //Serial.println("valores: ");
-        //for (int i = 0; i < 4; i++){
-          //Serial.print("\t");
-          //Serial.print(x[i]);
-        //}
-      } else {
-        if (u == max_passo) {
-          u = 0;
-          delay(500);
-        } else {
-          u++;
-          delay(500);
-        }
-      }
-    } 
+  for (int i = 0; i < 2; i++){
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(100);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(100); 
   }
 }
 
-void receiveEvent(int m){  
+void loop(){
+  digitalWrite(LED_BUILTIN, modo);
+  if (millis() - tempo >= 10){
+    tempo = millis();
+    for (int i = 0; i < 4; i++){ // toda essa parte serve para suavização dos movimentos
+      if (x[i] < passos[passo][i]) x[i] += 1;
+      if (x[i] > passos[passo][i]) x[i] -= 1;
+      servos[i].write(x[i]);
+    }
+    
+    if (modo == 0) {
+      if (b) {
+        Serial.println();
+        Serial.println("valores: ");
+        for (int i = 0; i < 4; i++){
+          Serial.print("\t");
+          Serial.print(x[i]);
+        }
+      }
+      
+      if (x[0] == passos[passo][0] && x[1] == passos[passo][1] && x[2] == passos[passo][2] && x[3] == passos[passo][3]) {
+        if (passo == max_passo) { // se chegou no último movimento
+          passo = 0;
+        } else { // se não, passa pro próximo
+          passo++;
+        }
+        delay(500);
+      }
+    }
+  }
+}
+
+void receiveEvent(int m){  // tratamento i2c
   byte i = 0;
   while(Wire.available()) {
     payload[i++] = Wire.read();
   }
-  
   payload[i] = '\0';
 
-  //Serial.println();
-  //Serial.print("Dado recebido: ");
-  
-  for (int i = 0; i < strlen(payload); i++){
-    //Serial.print(payload[i]);
+  if (b) {
+    Serial.println();
+    Serial.print("Dado recebido: ");
+    for (int i = 0; i < strlen(payload); i++){
+      Serial.print(payload[i]);
+    } 
   }
 
   if (strcmp(payload, "pr") == 0){
     modo = 1;
   } else if (strcmp(payload, "run") == 0){
     modo = 0;
+    passo = 0;
   } else if (strcmp(payload, "rs") ==  0){
-    passos[passo][0] = 90;
-    passos[passo][1] = 65;
-    passos[passo][2] = 75;
-    passos[passo][3] = 105;
+    resetarDados();
   } else if (strcmp((char *)payload, "sv") == 0){
     salvarDados();
   } else if (strcmp((char *)payload, "rt") == 0){
@@ -149,25 +116,31 @@ void receiveEvent(int m){
         passos[i][j] = -1;
       }
     }
-    passos[passo][0] = 90;
-    passos[passo][1] = 65;
-    passos[passo][2] = 75;
-    passos[passo][3] = 105;
+    passo = 0;
+    max_passo = 0;
+    resetarDados();
   }
-  //Serial.print("\nModo: ");
-  //Serial.println(modo);
-
-  //Serial.println();
+  
+  if (b){
+    Serial.print("\nModo: ");
+    Serial.println(modo);
+    Serial.println(); 
+  }
+  
   if (payload[0] == 59){
     valor = (char *)payload;
-    max_passo = valor[1] - '0';    valor = (char *)payload;
+    max_passo = valor[1] - '0';
     max_passo = valor[1] - '0';
     passo = valor[3] - '0';
-    //Serial.print("Max_passo: ");
-    //Serial.println(max_passo);
-    //Serial.print("Passo: ");
-    //Serial.println(passo);
-    if (passos[passo][0] == -1){
+    
+    if (b){
+      Serial.print("Max_passo: ");
+      Serial.println(max_passo);
+      Serial.print("Passo: ");
+      Serial.println(passo);  
+    }
+    
+    if (passos[passo][0] == -1){ // essa parte serve para caso o valor do próximo passo não tenha sido configurado ainda, ele puxa ou do anterior, ou do passo da frente
       if (passo >= 1 && passos[passo-1][0] != -1){
         for (int i = 0; i < 4; i++){
           passos[passo][i] = passos[passo-1][i];    
@@ -178,6 +151,7 @@ void receiveEvent(int m){
         }
       } 
     }
+    
   } else if (payload[1] == ';'){
      if (payload[0] == '1'){
       conversaoPayload();
@@ -192,17 +166,20 @@ void receiveEvent(int m){
       conversaoPayload();
       passos[passo][3] = atoi(valor);
      }
-  //Serial.println(passo);
+    if (b) Serial.println(passo);
   }
-  for (int i = 0; i < 4; i++){
-    //Serial.print("\t");
-    //Serial.print(passos[passo][i]);
+  
+  if (b){
+    for (int i = 0; i < 4; i++){
+      Serial.print("\t");
+      Serial.print(passos[passo][i]);
+    }  
   }
 }
 
 void conversaoPayload(){
   valor = (char *)payload;
-  for (int i = 0; i < strlen(valor); i++){
+  for (int i = 0; i < strlen(valor); i++){ // o valor é recebido no formato: "slider;valor", esse "for" isola o parâmetro "valor"
     if (i < strlen(valor)-1) {
       valor[i] = valor[i+2];
     } else {
@@ -216,9 +193,11 @@ void lerDados(){
   int coluna = 0;
   int value;
   int z = 0;
-  //Serial.println();
-  //Serial.println();
-  //Serial.println("Valores: ");
+
+  if (b) {
+    Serial.println();
+    Serial.println("Valores: "); 
+  }
 
   for (int i = 0; i < 10; i++){  
     for (int j = 0; j < 4; j++){
@@ -231,26 +210,40 @@ void lerDados(){
       z++;
     }
   }
-
-  for (int i = 0; i < 10; i++){
-    //Serial.println();
-    for (int j = 0; j < 4; j++){
-      //Serial.print(passos[i][j]);
-      //Serial.print("\t");
-    }
+  
+  if (b){
+    for (int i = 0; i < 10; i++){
+      Serial.println();
+      for (int j = 0; j < 4; j++){
+        Serial.print(passos[i][j]);
+        Serial.print("\t");
+      }
+    }  
   }
 }
 
 void salvarDados(){
   int z = 0;
-  //Serial.println();
-  //Serial.println("Salvando dados: ");
+  if (b){
+    Serial.println();
+    Serial.println("Salvando dados: ");  
+  }
+  
   for (int i = 0; i < 10; i++){  
     for (int j = 0; j < 4; j++){
       EEPROM.update(z, passos[i][j]);
-      //Serial.print(passos[i][j]);
-      //Serial.print("\t");
+      if (b){
+        Serial.print(passos[i][j]);
+        Serial.print("\t"); 
+      }
       z++;
     }
   }
+}
+
+void resetarDados(){
+  passos[passo][0] = 90;
+  passos[passo][1] = 65;
+  passos[passo][2] = 75;
+  passos[passo][3] = 105;
 }
