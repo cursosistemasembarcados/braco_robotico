@@ -13,6 +13,7 @@ char msg[161];
 char valor_msg[4];
 char *valor;
 char env[5];
+char payloadWire[8];
 unsigned short int passo;
 unsigned short int max_passo;
 unsigned short int modo = 1; // variável para decidir qual modo será enviado ao site
@@ -64,7 +65,9 @@ void setup() {
   if (b) Serial.printf("\n\nMeu endereco IP: ");
   if (b) Serial.print(WiFi.softAPIP());
   
-  Wire.begin();
+  Wire.begin(8);
+  Wire.onReceive(receiveEvent);
+  
   Wire.beginTransmission(4);
   Wire.write("Begin ESP32");
   Wire.endTransmission();
@@ -96,7 +99,6 @@ void setup() {
 }
 
 void loop() {
-  webSocket.loop(); // sem esse comando, o websocket não funcionará
   digitalWrite(2, modo);
 
   if (millis() - tempo >= 10){
@@ -180,6 +182,7 @@ void loop() {
     rn = false;
     rs = false;
   }
+  webSocket.loop(); // sem esse comando, o websocket não funcionará
 }
 
 void onWebSocketEvent(uint8_t client_num, WStype_t type, uint8_t * payload, size_t length) { 
@@ -256,7 +259,7 @@ void onWebSocketEvent(uint8_t client_num, WStype_t type, uint8_t * payload, size
             }
           } 
         }
-        sprintf(env, "1: %d", passos[passo][0]); // envia os valores do passo atual para o browser para atualizar na página
+        
         enviarDados();
       } else if (payload[1] == 59){ // quando o cliente mexe em um dos sliders, o formato enviado é: "slider;valor"
         if (payload[0] == 49){ // primeiro slider
@@ -445,4 +448,19 @@ long potencia(long a, long b) {
   for (uint8_t i = 1; i < b; i++)
       resultado *= a;
   return resultado;
+}
+
+void receiveEvent(int m){  // tratamento i2c
+  byte i = 0;
+  while(Wire.available()) payloadWire[i++] = Wire.read();
+  
+  payloadWire[i] = '\0';
+
+  if (b) {
+    Serial.println();
+    Serial.print("Dado recebido: ");
+    for (int i = 0; i < strlen(payloadWire); i++){
+      Serial.print(payloadWire[i]);
+    } 
+  }
 }

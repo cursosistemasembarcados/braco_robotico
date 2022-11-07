@@ -40,6 +40,9 @@ void setup(){
   }
 
   lerDados();
+  for (int i = 0; i < 4; i++){
+    servos[i].write(90);
+  }
   servos[0].attach(9);
   servos[1].attach(6);
   servos[2].attach(10);
