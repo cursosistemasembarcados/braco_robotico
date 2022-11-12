@@ -11,11 +11,12 @@ int max_passo = 0;
 int x[4];
 int adrrEsp = 10;
 unsigned long int tempo;
+int estaDisp = 0;
 bool b = true; // variável que decide se algo será printado no monitor serial
-Servo servo; // base
-Servo servo1; // mão
-Servo servo2; // ângulo braço
-Servo servo3; // Avanço braço
+Servo servo; // base - Pin(9)
+Servo servo1; // garra - Pin(6)
+Servo servo2; // ângulo braço - Pin(10)
+Servo servo3; // Avanço braço - Pin(11)
 Servo servos[4] = {servo, servo1, servo2, servo3};
 
 void conversaoPayload();
@@ -79,7 +80,10 @@ void loop(){
       
       if (x[0] == passos[passo][0] && x[1] == passos[passo][1] && x[2] == passos[passo][2] && x[3] == passos[passo][3]) {
         if (passo == max_passo) { // se chegou no último movimento
-          passo = 0;
+          if (estaDisp > 0){
+            estaDisp--;
+            passo = 0;
+          }
         } else { // se não, passa pro próximo
           passo++;
         }
@@ -122,6 +126,8 @@ void receiveEvent(int m){  // tratamento i2c
     passo = 0;
     max_passo = 0;
     resetarDados();
+  } else if (strcmp((char *)payload, "go") == 0) {
+    estaDisp++;
   }
   
   if (b){

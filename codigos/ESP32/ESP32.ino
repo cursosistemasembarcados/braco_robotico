@@ -26,6 +26,17 @@ bool b = true; // se for true, o monitor serial será habilitado
 unsigned int long tempoBuf;
 unsigned int tmp;
 unsigned int tempo;
+char bufEnvioEsteira[] = "000000000000000000000000";
+char esteira[31];
+char esteira2[31];
+char tempEsteira[10];
+int todosEsteira[7];
+int peca_aceita = 0;                   // Variável de contagem de peças aceitas ENVIAR SS
+int peca_rejeitada = 0;                // Variável de contagem de peças rejeitadas ENVIAR SS 
+uint16_t r, g, bl, c;                   // Variáveis para uso com o sensor de cor
+int confirmar_pecas= 0;                // Variável para a confirmar o total de peças ENVIAR SS
+int total_pecas = 0;                         // Variável para contagem do total de peças ENVIAR SS
+int estaDisp = 0;
 
 AsyncWebServer server(80); // 80 é a porta http 
 WebSocketsServer webSocket = WebSocketsServer(1337); // 1337 será usado para websocket
@@ -102,7 +113,7 @@ void loop() {
   digitalWrite(2, modo);
 
   if (millis() - tempo >= 10){
-    tempo = millis();
+    tempo += 10;
     for (int i = 0; i < 4; i++){ // toda essa parte serve para suavização dos movimentos
       if (x[i] < passos[passo][i]) x[i] += 1;
       if (x[i] > passos[passo][i]) x[i] -= 1;
@@ -120,7 +131,10 @@ void loop() {
       
       if (x[0] == passos[passo][0] && x[1] == passos[passo][1] && x[2] == passos[passo][2] && x[3] == passos[passo][3]) {
         if (passo == max_passo) { // se chegou no último movimento
-          passo = 0;
+          if (estaDisp > 0){
+            estaDisp--;
+            passo = 0; 
+          }
         } else { // se não, passa pro próximo
           passo++;
         }
@@ -130,10 +144,10 @@ void loop() {
     }
   }
   
-  if (millis() - tempoBuf >= 50 && !b) {
+  if (millis() - tempoBuf >= 100 && !b) {
     tempoBuf = millis();
     char i = 0;
-    char bufEnvio[] = "00000000000000000000000000000000000"; // string de envio para o supervisórios
+    char bufEnvio[] = "0000000000000000000000000000000000000000000000000"; // string de envio para o supervisórios
     
     char eixo0[] = "000";
     cIntToStr(passos[passo][0], eixo0, 3);
@@ -163,18 +177,20 @@ void loop() {
     strcat(bufEnvio, isRun); // 15
     strcat(bufEnvio, isRs); // 17
     strcat(bufEnvio, Cmax_passo); // 19
-    strcat(bufEnvio, Cpasso); // 21    
-    if (Serial.available()){ // Rotina de envio de dados para Elipse E3
-      i = 0;
-      bufRecebido[i] = -1;
-      while (Serial.available()){
-        bufRecebido[i] = Serial.read();
-        i++;
-        if (i == 20) break;
-      }        
-      Serial.print(bufEnvio);
-      Serial.write(0x0D);
-    } 
+    strcat(bufEnvio, Cpasso); // 21
+    strcat(bufEnvio, bufEnvioEsteira);
+//    if (Serial.available()){ // Rotina de envio de dados para Elipse E3
+//      i = 0;
+//      bufRecebido[i] = -1;
+//      while (Serial.available()){
+//        bufRecebido[i] = Serial.read();
+//        i++;
+//        if (i == 20) break;
+//      }        
+//      Serial.println(esteira);
+//      Serial.write(0x0D);
+//    }
+    Serial.println(bufEnvio);
   }
 
   if (millis() - tmp >= 2000){ // resetar variáveis que registra os estados do botões no supervisórios
@@ -183,6 +199,65 @@ void loop() {
     rs = false;
   }
   webSocket.loop(); // sem esse comando, o websocket não funcionará
+}
+
+void serialEvent(){
+  Serial.readBytes(esteira,30);
+  if (strcmp(esteira, esteira2) == 0){
+    for (int i = 0; i < 31; i++){
+      esteira2[i] = esteira[i]; 
+    }
+  }
+
+  //Serial.printf("Enviando: %s\n", "go");
+  Wire.beginTransmission(4);
+  Wire.write("go");
+  Wire.endTransmission();
+  estaDisp++;
+  
+  int index = 0;
+  int Tindex = 0;
+  for (int i = 0; i < strlen(esteira); i++){
+    if (esteira[i] == 59 ){
+      tempEsteira[i] = '\0';
+      index = 0;
+      todosEsteira[Tindex++] = atoi(tempEsteira);
+    } else {
+      tempEsteira[index] = esteira[i];
+      index++;
+    }
+  }
+  //sprintf(env, "%d;%d;%d;%d;%d;%d;%d;", peca_aceita, peca_rejeitada, confirmar_pecas, total_pecas, r, g, b); 
+  peca_aceita = todosEsteira[0];
+  peca_rejeitada = todosEsteira[1];
+  confirmar_pecas = todosEsteira[2];
+  total_pecas = todosEsteira[3];
+  r = todosEsteira[4];
+  g = todosEsteira[5];
+  bl = todosEsteira[6];
+  
+  char Epa[] = "000";
+  cIntToStr(peca_aceita, Epa, 3); 
+  char Epr[] = "000";
+  cIntToStr(peca_rejeitada, Epr, 3); 
+  char Ecp[] = "000";
+  cIntToStr(confirmar_pecas, Ecp, 3); 
+  char Etp[] = "000";
+  cIntToStr(total_pecas, Etp, 3);
+  char Er[] = "000";
+  cIntToStr(r, Er, 3); 
+  char Eg[] = "000";
+  cIntToStr(g, Eg, 3);
+  char Ebl[] = "000";
+  cIntToStr(bl, Ebl, 3);
+  strcpy(bufEnvioEsteira, Epa); //1
+  strcat(bufEnvioEsteira, Epr); //4
+  strcat(bufEnvioEsteira, Ecp); //7
+  strcat(bufEnvioEsteira, Etp); //10
+  strcat(bufEnvioEsteira, Er); // 13
+  strcat(bufEnvioEsteira, Eg); // 16
+  strcat(bufEnvioEsteira, Eg); // 19
+  strcat(bufEnvioEsteira, Ebl); // 21
 }
 
 void onWebSocketEvent(uint8_t client_num, WStype_t type, uint8_t * payload, size_t length) { 
@@ -238,6 +313,8 @@ void onWebSocketEvent(uint8_t client_num, WStype_t type, uint8_t * payload, size
         passo = 0;
         max_passo = 0;
         resetarDados();
+      } else if (strcmp((char *)payload, "go") == 0) {
+        estaDisp++;
       }
       
       if (payload[0] == 59){ // quando o cliente aperta muda o passo ou o max_passo, é recebido no seguinte formato: ";max_passo;passo", onde ";" == 59 
@@ -323,6 +400,7 @@ void onProgJS(AsyncWebServerRequest *request) { // prog.js
 
 void transmitirPayload(uint8_t * payload){
   valor = (char *)payload;
+  Serial.printf("Enviando: %s", valor);
   Wire.beginTransmission(4);
   Wire.write(valor);
   Wire.endTransmission();
