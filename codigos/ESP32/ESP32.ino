@@ -12,31 +12,40 @@ char bufRecebido[255];
 char msg[161];
 char valor_msg[4];
 char *valor;
-char env[5];
+char env[10]; // string de envio para o site
 char payloadWire[8];
-unsigned short int passo;
+unsigned short int passo; // passo atual
 unsigned short int max_passo;
 unsigned short int modo = 1; // variável para decidir qual modo será enviado ao site
 int short passos[10][4];
 int short x[4];
-bool pr = false;
-bool rn = false;
-bool rs = false;
-bool b = true; // se for true, o monitor serial será habilitado
+int estaDisp = 0; // deve mexer o braço?
+bool pr = false; // serve para animar o botão no supervisórios
+bool rn = false; // serve para animar o botão no supervisórios
+bool rs = false; // serve para animar o botão no supervisórios
+bool b = false; // se for true, o monitor serial será habilitado
 unsigned int long tempoBuf;
-unsigned int tmp;
-unsigned int tempo;
-char bufEnvioEsteira[] = "000000000000000000000000";
-char esteira[31];
-char esteira2[31];
-char tempEsteira[10];
-int todosEsteira[7];
-int peca_aceita = 0;                   // Variável de contagem de peças aceitas ENVIAR SS
-int peca_rejeitada = 0;                // Variável de contagem de peças rejeitadas ENVIAR SS 
-uint16_t r, g, bl, c;                   // Variáveis para uso com o sensor de cor
-int confirmar_pecas= 0;                // Variável para a confirmar o total de peças ENVIAR SS
-int total_pecas = 0;                         // Variável para contagem do total de peças ENVIAR SS
-int estaDisp = 0;
+unsigned int long tmp;
+unsigned int long tempo;
+
+// ---------- ESTEIRA ---------- //
+char bufEnvioEsteira[] = "000000000000000000000000000000000000"; // buffer da esteira
+char esteira[31]; // para recebimento de dados da esteira
+char tempEsteira[10]; // variável temporária para separar os dados recebidos
+int todosEsteira[7]; // guarda os valores separados
+int peca_aceita = 0; // qtd de peças aceitas
+int peca_rejeitada = 0; // qtd de peças rejeitadas
+uint16_t r, g, bl, c; // cores do sensor de cor da esteira
+int confirmar_pecas= 0; // pecas confirmadas
+int total_pecas = 0; // pecas total, ou seja, que entraram na esteira
+bool SE = false; // sensor de entrada
+bool SC = false; // sensor de cor
+bool SD = false; // sensor de descarte
+bool SdC = false; //sensor de coleta
+bool SDep = false; // sensor de deposito final
+int dep = 0; // pecas depositadas
+bool anterior = false;
+bool isOn = false;
 
 AsyncWebServer server(80); // 80 é a porta http 
 WebSocketsServer webSocket = WebSocketsServer(1337); // 1337 será usado para websocket
@@ -60,12 +69,18 @@ long potencia(long a, long b);
 
 void setup() {
   Serial.begin(9600);
+  Serial2.begin(9600, SERIAL_8N1, 26, 25);
+  
   if (b) Serial.printf("\nPrograma comecando\n");  
 
   for (int i = 0; i < 10; i++){
     for (int j = 0; j < 4; j++){
       passos[i][j] = -1;
     }
+  }
+
+  for (int i = 0; i < 7; i++){
+    todosEsteira[i] = 0;
   }
   
   if(!SPIFFS.begin(true)) deuErrado();
@@ -76,9 +91,7 @@ void setup() {
   if (b) Serial.printf("\n\nMeu endereco IP: ");
   if (b) Serial.print(WiFi.softAPIP());
   
-  Wire.begin(8);
-  Wire.onReceive(receiveEvent);
-  
+  Wire.begin();
   Wire.beginTransmission(4);
   Wire.write("Begin ESP32");
   Wire.endTransmission();
@@ -95,6 +108,7 @@ void setup() {
   webSocket.begin(); // inicia o webSocket
   webSocket.onEvent(onWebSocketEvent); // Atribui a função de tratamento de dados do websocket à variável WebSocket
 
+  pinMode(14, INPUT);
   pinMode(2, OUTPUT);
 
   for (int i = 0; i < 2; i++){
@@ -118,23 +132,21 @@ void loop() {
       if (x[i] < passos[passo][i]) x[i] += 1;
       if (x[i] > passos[passo][i]) x[i] -= 1;
     }
-    
-    if (modo == 0) {
-      if (b) {
+
+    if (b) {
         Serial.println();
-        Serial.println("valores: ");
+        Serial.printf("valores: %d\n", passo);
         for (int i = 0; i < 4; i++){
           Serial.print("\t");
           Serial.print(x[i]);
         }
       }
-      
+    
+    if (modo == 0 && estaDisp > 0) {
       if (x[0] == passos[passo][0] && x[1] == passos[passo][1] && x[2] == passos[passo][2] && x[3] == passos[passo][3]) {
         if (passo == max_passo) { // se chegou no último movimento
-          if (estaDisp > 0){
-            estaDisp--;
-            passo = 0; 
-          }
+          estaDisp--;
+          passo = 0; 
         } else { // se não, passa pro próximo
           passo++;
         }
@@ -144,10 +156,10 @@ void loop() {
     }
   }
   
-  if (millis() - tempoBuf >= 100 && !b) {
+  if (millis() - tempoBuf >= 50 && !b) {
     tempoBuf = millis();
     char i = 0;
-    char bufEnvio[] = "0000000000000000000000000000000000000000000000000"; // string de envio para o supervisórios
+    char bufEnvio[] = "00000000000000000000000000000000000000000000000000000000000000000000000"; // string de envio para o supervisórios
     
     char eixo0[] = "000";
     cIntToStr(passos[passo][0], eixo0, 3);
@@ -167,6 +179,10 @@ void loop() {
     cIntToStr(max_passo, Cmax_passo, 1);
     char Cpasso[] = "00";
     cIntToStr(passo, Cpasso, 1);
+    char cSDep[] = "00";
+    cIntToStr(SDep, cSDep, 1);
+    char cDep[] = "000";
+    cIntToStr(dep, cDep, 3);
 
     // concatena e envia tudo via porta serial // 
     strcpy(bufEnvio, eixo0); //1
@@ -177,64 +193,108 @@ void loop() {
     strcat(bufEnvio, isRun); // 15
     strcat(bufEnvio, isRs); // 17
     strcat(bufEnvio, Cmax_passo); // 19
-    strcat(bufEnvio, Cpasso); // 21
-    strcat(bufEnvio, bufEnvioEsteira);
-//    if (Serial.available()){ // Rotina de envio de dados para Elipse E3
-//      i = 0;
-//      bufRecebido[i] = -1;
-//      while (Serial.available()){
-//        bufRecebido[i] = Serial.read();
-//        i++;
-//        if (i == 20) break;
-//      }        
-//      Serial.println(esteira);
-//      Serial.write(0x0D);
-//    }
-    Serial.println(bufEnvio);
+    strcat(bufEnvio, Cpasso); // 21 // 23
+    strcat(bufEnvio, bufEnvioEsteira); // 24 - 54
+    strcat(bufEnvio, cSDep); // 54 Sensor de depósito
+    strcat(bufEnvio, cDep); // 56 quantidade de depósito
+    
+    if (Serial.available()){ // Rotina de envio de dados para Elipse E3
+      i = 0;
+      bufRecebido[i] = -1;
+      while (Serial.available()){
+        bufRecebido[i] = Serial.read();
+        i++;
+        if (i == 20) break;
+      }        
+      Serial.print(bufEnvio); 
+      Serial.write(0x0D);
+    }
+//    Serial.println(bufEnvio);
+  }
+
+  if (digitalRead(14)){
+    if(anterior == false){
+      tmp = millis();
+      SDep = true;
+      dep++;
+      anterior = true;
+    }
+  } else {
+    anterior = false;
   }
 
   if (millis() - tmp >= 2000){ // resetar variáveis que registra os estados do botões no supervisórios
     pr = false;
     rn = false;
     rs = false;
+    SDep = false;
   }
   webSocket.loop(); // sem esse comando, o websocket não funcionará
 }
 
-void serialEvent(){
-  Serial.readBytes(esteira,30);
-  if (strcmp(esteira, esteira2) == 0){
-    for (int i = 0; i < 31; i++){
-      esteira2[i] = esteira[i]; 
-    }
+void serialEvent2(){ // rotina de recebimeno de dados da esteira
+  int index = 0;
+  while (Serial2.available()) esteira[index++] = Serial2.read();
+  esteira[index] = '\0';
+  //Serial.println(esteira);  
+
+  if (strcmp(esteira, "SB") == 0){ // esteira em stand-by
+    SD = false;
+    SdC = false; 
+    SE = false;
+    SC = false;
+    isOn = false;
+  } else if (strcmp(esteira, "SE") == 0){ // sensor de entrada
+    isOn = true;
+    SE = true;
+  } else if (strcmp(esteira, "SC") == 0){ // sensor de cor
+    SE = false;
+    SC = true;
+  } else { // se o último passo da esteira for executad
+    SE = false;
+    SC = false;
+    
+    Wire.beginTransmission(4);
+    Wire.write("go");
+    Wire.endTransmission();
+    estaDisp++;
+
+    // rotina de separação de dados para as variáveis locais
+    int Findex = 0;
+    int Tindex = 0;
+    for (int i = 0; i < strlen(esteira); i++){
+      if (esteira[i] == 59){
+        tempEsteira[Findex] = '\0';
+        Findex = 0;
+        todosEsteira[Tindex++] = atoi(tempEsteira);
+      } else {
+        tempEsteira[Findex] = esteira[i];
+        Findex++;
+      }
+    } 
   }
 
-  //Serial.printf("Enviando: %s\n", "go");
-  Wire.beginTransmission(4);
-  Wire.write("go");
-  Wire.endTransmission();
-  estaDisp++;
-  
-  int index = 0;
-  int Tindex = 0;
-  for (int i = 0; i < strlen(esteira); i++){
-    if (esteira[i] == 59 ){
-      tempEsteira[i] = '\0';
-      index = 0;
-      todosEsteira[Tindex++] = atoi(tempEsteira);
-    } else {
-      tempEsteira[index] = esteira[i];
-      index++;
-    }
+  // dessa forma é possível saber qual sensor foi ativado
+  // se foi o de peca aceita ou não.
+  if (peca_aceita < todosEsteira[0]) {
+    if (b) Serial.println("peca_aceita menor");
+    SdC = true;
+  } else {
+    SdC = false;
   }
-  //sprintf(env, "%d;%d;%d;%d;%d;%d;%d;", peca_aceita, peca_rejeitada, confirmar_pecas, total_pecas, r, g, b); 
+  if (peca_rejeitada < todosEsteira[1]){
+    if (b) Serial.println("peca_rejeitada menor");
+    SD = true;
+  } else {
+    SD = false;
+  }
   peca_aceita = todosEsteira[0];
   peca_rejeitada = todosEsteira[1];
   confirmar_pecas = todosEsteira[2];
   total_pecas = todosEsteira[3];
   r = todosEsteira[4];
   g = todosEsteira[5];
-  bl = todosEsteira[6];
+  bl = todosEsteira[6];  
   
   char Epa[] = "000";
   cIntToStr(peca_aceita, Epa, 3); 
@@ -250,14 +310,30 @@ void serialEvent(){
   cIntToStr(g, Eg, 3);
   char Ebl[] = "000";
   cIntToStr(bl, Ebl, 3);
-  strcpy(bufEnvioEsteira, Epa); //1
-  strcat(bufEnvioEsteira, Epr); //4
-  strcat(bufEnvioEsteira, Ecp); //7
-  strcat(bufEnvioEsteira, Etp); //10
-  strcat(bufEnvioEsteira, Er); // 13
-  strcat(bufEnvioEsteira, Eg); // 16
-  strcat(bufEnvioEsteira, Eg); // 19
-  strcat(bufEnvioEsteira, Ebl); // 21
+  char cSE[] = "00";
+  cIntToStr(SE, cSE, 1);
+  char cSC[] = "00";
+  cIntToStr(SC, cSC, 1);
+  char cSD[] = "00";
+  cIntToStr(SD, cSD, 1);
+  char cSdC[] = "00";
+  cIntToStr(SdC, cSdC, 1);
+  char CisOn[] = "00";
+  cIntToStr(isOn, CisOn, 1);
+  
+  strcpy(bufEnvioEsteira, Epa); //23   pecas aceitas
+  strcat(bufEnvioEsteira, Epr); //26   pecas rejeitadas
+  strcat(bufEnvioEsteira, Ecp); //29   confirmadas
+  strcat(bufEnvioEsteira, Etp); //32   total de pecas
+  strcat(bufEnvioEsteira, Er); // 35   r
+  strcat(bufEnvioEsteira, Eg); // 38   g
+  strcat(bufEnvioEsteira, Ebl); // 41  b
+  strcat(bufEnvioEsteira, cSE); // 44  Sensor de entrada
+  strcat(bufEnvioEsteira, cSC); // 46  Sensor de cor
+  strcat(bufEnvioEsteira, cSD); // 48  Sensor de descarte
+  strcat(bufEnvioEsteira, cSdC); // 50 Sensor de coleta
+  strcat(bufEnvioEsteira, CisOn); // 52 Is esteira On?
+  //Serial.println(bufEnvioEsteira); 
 }
 
 void onWebSocketEvent(uint8_t client_num, WStype_t type, uint8_t * payload, size_t length) { 
@@ -400,7 +476,7 @@ void onProgJS(AsyncWebServerRequest *request) { // prog.js
 
 void transmitirPayload(uint8_t * payload){
   valor = (char *)payload;
-  Serial.printf("Enviando: %s", valor);
+  if (b) Serial.printf("Enviando: %s", valor);
   Wire.beginTransmission(4);
   Wire.write(valor);
   Wire.endTransmission();
@@ -500,9 +576,9 @@ void enviarDados(){ // aqui, assim que o cliente conecta, o esp32 envia o passo,
 
 void resetarDados(){
   passos[passo][0] = 90;
-  passos[passo][1] = 65;
-  passos[passo][2] = 75;
-  passos[passo][3] = 105;
+  passos[passo][1] = 75;
+  passos[passo][2] = 85;
+  passos[passo][3] = 70;
 }
 
 int cIntToStr(long lngNum, char strNum[], uint8_t tamNum) { // converter int para String, mantendo formato de 3 casas, 90 -> 090
@@ -526,19 +602,4 @@ long potencia(long a, long b) {
   for (uint8_t i = 1; i < b; i++)
       resultado *= a;
   return resultado;
-}
-
-void receiveEvent(int m){  // tratamento i2c
-  byte i = 0;
-  while(Wire.available()) payloadWire[i++] = Wire.read();
-  
-  payloadWire[i] = '\0';
-
-  if (b) {
-    Serial.println();
-    Serial.print("Dado recebido: ");
-    for (int i = 0; i < strlen(payloadWire); i++){
-      Serial.print(payloadWire[i]);
-    } 
-  }
 }

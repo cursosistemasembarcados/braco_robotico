@@ -252,7 +252,7 @@ void salvarDados(){
 
 void resetarDados(){
   passos[passo][0] = 90;
-  passos[passo][1] = 65;
-  passos[passo][2] = 75;
-  passos[passo][3] = 105;
+  passos[passo][1] = 75;
+  passos[passo][2] = 85;
+  passos[passo][3] = 70;
 }

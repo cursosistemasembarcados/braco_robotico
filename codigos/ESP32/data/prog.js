@@ -16,7 +16,7 @@ const dom = { // variável que contém todos os elementos utilizados aqui do DOM
     passo: document.getElementById("passo")
 }
 
-const reset = [90,65,75,105];
+const reset = [90,75,85,70];  // valores para resetar todos os sliders ao centro
 
 function init() {
     // dom.sliders.style.pointerEvents = "none";
