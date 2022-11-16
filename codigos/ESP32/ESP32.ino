@@ -127,20 +127,20 @@ void loop() {
   digitalWrite(2, modo);
 
   if (millis() - tempo >= 10){
-    tempo += 10;
+    tempo = millis();
     for (int i = 0; i < 4; i++){ // toda essa parte serve para suavização dos movimentos
       if (x[i] < passos[passo][i]) x[i] += 1;
       if (x[i] > passos[passo][i]) x[i] -= 1;
     }
 
     if (b) {
-        Serial.println();
-        Serial.printf("valores: %d\n", passo);
-        for (int i = 0; i < 4; i++){
-          Serial.print("\t");
-          Serial.print(x[i]);
-        }
+      Serial.println();
+      Serial.printf("valores: %d\n", passo);
+      for (int i = 0; i < 4; i++){
+        Serial.print("\t");
+        Serial.print(x[i]);
       }
+    }
     
     if (modo == 0 && estaDisp > 0) {
       if (x[0] == passos[passo][0] && x[1] == passos[passo][1] && x[2] == passos[passo][2] && x[3] == passos[passo][3]) {
@@ -253,11 +253,6 @@ void serialEvent2(){ // rotina de recebimeno de dados da esteira
   } else { // se o último passo da esteira for executad
     SE = false;
     SC = false;
-    
-    Wire.beginTransmission(4);
-    Wire.write("go");
-    Wire.endTransmission();
-    estaDisp++;
 
     // rotina de separação de dados para as variáveis locais
     int Findex = 0;
@@ -279,9 +274,14 @@ void serialEvent2(){ // rotina de recebimeno de dados da esteira
   if (peca_aceita < todosEsteira[0]) {
     if (b) Serial.println("peca_aceita menor");
     SdC = true;
+    Wire.beginTransmission(4);
+    Wire.write("go");
+    Wire.endTransmission();
+    estaDisp++;
   } else {
     SdC = false;
   }
+  
   if (peca_rejeitada < todosEsteira[1]){
     if (b) Serial.println("peca_rejeitada menor");
     SD = true;

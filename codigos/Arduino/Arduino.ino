@@ -51,15 +51,15 @@ void setup(){
   tempo = millis();
   pinMode(8, OUTPUT);
   for (int i = 0; i < 2; i++){
-    digitalWrite(LED_BUILTIN, HIGH);
+    digitalWrite(8, HIGH);
     delay(100);
-    digitalWrite(LED_BUILTIN, LOW);
+    digitalWrite(8, LOW);
     delay(100); 
   }
 }
 
 void loop(){
-  digitalWrite(LED_BUILTIN, modo);
+  digitalWrite(8, modo);
   if (millis() - tempo >= 10){
     tempo = millis();
     for (int i = 0; i < 4; i++){ // toda essa parte serve para suavização dos movimentos
@@ -67,9 +67,8 @@ void loop(){
       if (x[i] > passos[passo][i]) x[i] -= 1;
       servos[i].write(x[i]);
     }
-    
-    if (modo == 0) {
-      if (b) {
+
+    if (b) {
         Serial.println();
         Serial.println("valores: ");
         for (int i = 0; i < 4; i++){
@@ -77,13 +76,12 @@ void loop(){
           Serial.print(x[i]);
         }
       }
-      
+    
+    if (modo == 0) {
       if (x[0] == passos[passo][0] && x[1] == passos[passo][1] && x[2] == passos[passo][2] && x[3] == passos[passo][3]) {
         if (passo == max_passo) { // se chegou no último movimento
-          if (estaDisp > 0){
-            estaDisp--;
-            passo = 0;
-          }
+          estaDisp--;
+          passo = 0;
         } else { // se não, passa pro próximo
           passo++;
         }
