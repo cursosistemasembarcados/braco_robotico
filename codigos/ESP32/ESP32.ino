@@ -5,7 +5,29 @@
 #include <WebSocketsServer.h> // Para webSocket
 #include <stdio.h>
 #include <string.h>
+#include <HX711.h>
 
+// ---------- SENSOR DE PESO ---------- //
+HX711 scale;
+
+#define ZEROVAL   14474   // Valor RAW de 0 gramas
+#define CALIBVAL  44125   // Valor RAW do peso base
+#define PESOBASE  131     // Peso base de calibração em gramas
+#define TARA      165     // Valor para zerar a balança
+
+const int LOADCELL_DOUT_PIN = 15;
+const int LOADCELL_SCK_PIN = 4;
+long long BUFF;   // Quantidade de leituras para a média
+byte BUFFL;
+int RAW;
+int gramas;
+int qtdBlocos;
+const int pesoBloco = 15;
+unsigned long int tempoPeso;
+
+float ConvertVal(long RAWVAL);
+
+// -------------- BRAÇO -------------- //
 const char ssid[] = "ESP32-AP"; // nome da rede
 const char senha[] =  "SenhaSimples"; // senha
 char bufRecebido[255];
@@ -28,8 +50,8 @@ unsigned int long tempoBuf;
 unsigned int long tmp;
 unsigned int long tempo;
 
-// ---------- ESTEIRA ---------- //
-char bufEnvioEsteira[] = "000000000000000000000000000000000000"; // buffer da esteira
+// --------------- ESTEIRA --------------- //
+char bufEnvioEsteira[] = "0000000000000000000000000000000"; // buffer da esteira
 char esteira[31]; // para recebimento de dados da esteira
 char tempEsteira[10]; // variável temporária para separar os dados recebidos
 int todosEsteira[7]; // guarda os valores separados
@@ -70,6 +92,7 @@ long potencia(long a, long b);
 void setup() {
   Serial.begin(9600);
   Serial2.begin(9600, SERIAL_8N1, 26, 25);
+  scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
   
   if (b) Serial.printf("\nPrograma comecando\n");  
 
@@ -107,8 +130,6 @@ void setup() {
   server.begin(); // inicia o servidor
   webSocket.begin(); // inicia o webSocket
   webSocket.onEvent(onWebSocketEvent); // Atribui a função de tratamento de dados do websocket à variável WebSocket
-
-  pinMode(14, INPUT);
   pinMode(2, OUTPUT);
 
   for (int i = 0; i < 2; i++){
@@ -121,12 +142,13 @@ void setup() {
   tempoBuf = millis();
   tempo = millis();
   tmp = millis();
+  tempoPeso = millis();
 }
 
 void loop() {
   digitalWrite(2, modo);
 
-  if (millis() - tempo >= 10){
+  if (millis() - tempo >= 10){ // rotina do movimento do braço
     tempo = millis();
     for (int i = 0; i < 4; i++){ // toda essa parte serve para suavização dos movimentos
       if (x[i] < passos[passo][i]) x[i] += 1;
@@ -155,11 +177,12 @@ void loop() {
       }
     }
   }
-  
+
+  // rotina de envio para o supervisórios
   if (millis() - tempoBuf >= 50 && !b) {
     tempoBuf = millis();
     char i = 0;
-    char bufEnvio[] = "00000000000000000000000000000000000000000000000000000000000000000000000"; // string de envio para o supervisórios
+    char bufEnvio[] = "00000000000000000000000000000000000000000000000000000000000"; // string de envio para o supervisórios
     
     char eixo0[] = "000";
     cIntToStr(passos[passo][0], eixo0, 3);
@@ -212,15 +235,22 @@ void loop() {
 //    Serial.println(bufEnvio);
   }
 
-  if (digitalRead(14)){
-    if(anterior == false){
-      tmp = millis();
+  // rotina do sensor de peso
+  if (millis() - tempoPeso >= 2000){
+    tempoPeso = millis();
+      
+    while (!scale.is_ready());
+    RAW = scale.read();
+  
+    gramas = ConvertVal(RAW) + TARA;
+    gramas -= (gramas*2);
+    qtdBlocos = gramas/pesoBloco;
+
+    if (dep != qtdBlocos && qtdBlocos >= 0){
       SDep = true;
-      dep++;
-      anterior = true;
+      tmp = millis(); 
+      dep = qtdBlocos;
     }
-  } else {
-    anterior = false;
   }
 
   if (millis() - tmp >= 2000){ // resetar variáveis que registra os estados do botões no supervisórios
@@ -602,4 +632,11 @@ long potencia(long a, long b) {
   for (uint8_t i = 1; i < b; i++)
       resultado *= a;
   return resultado;
+}
+
+float ConvertVal(long RAWVAL){
+  float unit = (float)PESOBASE / (float)(ZEROVAL - CALIBVAL);
+  long VG = (float)(ZEROVAL - RAWVAL) * unit;
+
+  return VG;
 }
