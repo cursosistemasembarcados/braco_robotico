@@ -18,6 +18,9 @@ O dispositivo em questão foi adquirido no mercado e compõe-se basicamente de u
 <img src="/imagens/Imagem_do_braco.png" alt="Braço Robótico" style="height:auto; width:100%;"/>
 
 Para o desenvolvimento do braço, foram necessários dois microcontroladores, o NodeMCU ESP32 e o ATMega328P (microcontrolador do Arduino UNO) utilizando o prototocolo de comunicação I²C entre eles, utilizando a linguagem C++ para os microcontroladores, e HTML, JavaScript e CSS para interface de controle do robô. 
+___
+- *Obs: Esse repositório contém duas branchs. A branch **_main_** (branch atual) contém o código para o funcionamento do braço robótico sozinho. A segunda branch **_serial_esteira_** contém o código e as adaptações necessárias para funcionar com uma segunda parte do nosso projeto, uma Esteira Seletora. Para melhor entendimento do projeto, sugerimos que leia primeiramente a descrição dessa branch, e depois ler a outra.* 
+___
 
 # Hardware e Esquemas Elétricos
 
@@ -66,19 +69,21 @@ Senão, será necessário instalar o *breadboard-avr* atráves da seguinte pági
 Para o código funcionar corretamente, são necessárias três bibliotecas que não são instaladas ao configurar o *board manager* do ESP32.
 
 Para o programa funcionar corretamente, instale o *board manager* do ESP32 e as bibliotecas que estão abaixo:
-- [esp32-arduino](https://github.com/iotechbugs/esp32-arduino)
-- [AsyncTCP](https://github.com/me-no-dev/AsyncTCP)
-- [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer)
-- WebSocketsServer(essa é instalável pelo próprio gerenciador de bibliotecas do Arduino, e pode ser encontrada com o seguinte nome: **WebSockets** by **Markus Sattler**)
+- [*esp32-arduino*](https://github.com/iotechbugs/esp32-arduino)
+- [*AsyncTCP*](https://github.com/me-no-dev/AsyncTCP)
+- [*ESPAsyncWebServer*](https://github.com/me-no-dev/ESPAsyncWebServer)
+- *WebSocketsServer* (essa é instalável pelo próprio gerenciador de bibliotecas do Arduino, e pode ser encontrada com o seguinte nome: **WebSockets** by **Markus Sattler**)
 
 Para o processo de configuração inicial do ESP32, é necessário um plugin(esp32-fs), que permite que se suba arquivos à memória flash do ESP32, que nesse projeto são necessários para o funcionamento da interface *Web*.
-- [esp32-fs](https://github.com/me-no-dev/arduino-esp32fs-plugin)
+- [*esp32-fs*](https://github.com/me-no-dev/arduino-esp32fs-plugin)
 
 Para salvar os arquivos da página de login na memória do ESP, é necessário *clicar* no botão *ESP32 Sketch Data Upload*, em "ferramentas", na *interface* do Arduino. Feito isso, para se conectar ao servidor web criado pelo ESP, basta se conectar ao seu WIFI, que podem ter nome e senhas alterados no próprio código(nas linhas 9 e 10). Para se conectar ao servidor, basta escrever *192.168.4.1* no seu navegador de escolha e assim a seguinte página deve se carregar:
 
 <img src="/imagens/Tela_de_login.png" alt="Tela de login" style="height:auto; width:100%;"/>
 
+___
 - *Observação: o navegador, às vezes, tentará se conectar ao website usando HTTPS, e não funcionará. Neste caso, mude a url para forçar a conexão usando HTTP.*
+___
 
 Nesse projeto, apesar de implementarmos a página de login, ela não foi configurada para ser acessada com determinada senha e login. Sendo assim, basta preencher os campos com qualquer coisa que o site deixará vocẽ prosseguir à tela que está no item abaixo.
 
@@ -92,7 +97,9 @@ Vale ressaltar que para que haja a configuração efetiva entre o operador para 
 
 <img src="/imagens/Tela_de_configuracao.png" alt="Tela de configuração do braço" style="height:auto; width:100%;"/>
 
+___
 - *Observação: É recomendado que na primeira vez que se iniciar o site, clicar em "reset" e em "save", para que as posições sejam salvas e evite problemas em uso futuro*
+___
 
 Acima o "estado da conexão" e o "modo de funcionamento", indicam respectivamente o estado do *websocket*(que é necessário para comunicação com o ESP32) e o modo de funcionamento atual, que pode ser "Run" e "Program".
 
@@ -108,10 +115,11 @@ Ao final da tela, os botões no final da tela desempenham as seguintes funções
 # Sistema Supervisório
 
 Todas as funções que estiverem ocorrendo no braço robótico, idependente do modo de operação, serão posssíveis de viazualizar a partir de um sistema supervisório, que é responsável pelo monitoramento em tempo real. A transmissão de dados ocorre pelo protocolo de comunicação RS232, através da porta serial do ESP32. O Software usado no nosso caso é o Elipse E3.
-
+___
 - *Observação: a variável "bool b"(linha 24), no código do ESP32 tem que ser "false" para os dados serem transmitidos ao Elipse E3.*
 
 - *Além disso, a variável "P1/N1/B1", do RS232(Domínio/Objetos de Servidor/Drivers e OPC/RS232) deve ser alterada à porta "COM" que o esp está usando no seu computador.*
+___
 
 Depois de tudo isso, a tela deve se aparecer com algo parecido abaixo:
 <img src="/imagens/Tela_supervisorio_robo.png" alt="Tela de configuração do braço" style="height:auto; width:100%;"/>
