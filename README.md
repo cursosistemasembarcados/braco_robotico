@@ -25,9 +25,9 @@ ___
 
 Segue um vídeo do nosso projeto para melhor entendimento:
 
-<img src = "imagens/braco_robotico.gif" width = "100%">
+<img src = "imagens/braco_robotico.gif" alt = "Gif-braço robótico" width = "">
 
-[Clique aqui se preferir ver no youtube](https://www.youtube.com/watch?v=XmaUbG7Ou1w)
+[Clique aqui se preferir ver no youtube](https://www.youtube.com/shorts/YQ-HXzAsZnU)
 
 # Hardware e Esquemas Elétricos
 
