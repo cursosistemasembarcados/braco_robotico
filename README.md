@@ -20,7 +20,14 @@ O dispositivo em questão foi adquirido no mercado e compõe-se basicamente de u
 Para o desenvolvimento do braço, foram necessários dois microcontroladores, o NodeMCU ESP32 e o ATMega328P (microcontrolador do Arduino UNO) utilizando o prototocolo de comunicação I²C entre eles, utilizando a linguagem C++ para os microcontroladores, e HTML, JavaScript e CSS para interface de controle do robô. 
 ___
 - *Obs: Esse repositório contém duas branchs. A branch **_main_** (branch atual) contém o código para o funcionamento do braço robótico sozinho. A segunda branch **_serial_esteira_** contém o código e as adaptações necessárias para funcionar com uma segunda parte do nosso projeto, uma Esteira Seletora. Para melhor entendimento do projeto, sugerimos que leia primeiramente a descrição dessa branch, e depois ler a outra.* 
+[_Clique aqui para ser abrir a branch Serial Esteira_](https://github.com/cursosistemasembarcados/braco_robotico/tree/serial_esteira)
 ___
+
+Segue um vídeo do nosso projeto para melhor entendimento:
+
+<img src = "imagens/braco_robotico.gif" width = "100%">
+
+[Clique aqui se preferir ver no youtube](https://www.youtube.com/watch?v=XmaUbG7Ou1w)
 
 # Hardware e Esquemas Elétricos
 
